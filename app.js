@@ -6,6 +6,7 @@ require('dotenv-extended').load({
 var restify = require('restify');
 var builder = require('botbuilder');
 var InstagramService = require('./services/instagram.service');
+var EmotionApiService = require('./services/emotion.api.service');
 
 // Setup Restify Server
 var server = restify.createServer({ url: 'localhost' });
@@ -31,7 +32,7 @@ var send = function (message) {
     _session.send(message);
 }
 
-// Yardım menüsü seçenekleri listeleme
+// Help menu options list
 var help = function () {
     builder.Prompts.choice(
         _session,
@@ -44,19 +45,27 @@ var help = function () {
 }
 
 
-// search for images by user Id
+var recognizeEmotions = function (url) {
+    EmotionApiService
+        .recognizeEmotions(url)
+        .then(info => {
+            send("başarılı")
+        }).catch(err => send((err)));
+}
+
+// Search for images by user Id
 var getPhotosByUserId = function (userId) {
     InstagramService
         .getPhotosByUserId(userId)
         .then(photos => {
             for (let i = 0; i < photos.length; i++) {
-                const element = photos[i];
-                send(element)// test
+                const url = photos[i];
+                recognizeEmotions(url);
             }
         }).catch(err => send((err)));
 }
 
-// search for user by user name or fullname
+// Search for user by user name or fullname
 var getUserByName = function (name) {
     InstagramService
         .getUserByName(name)
@@ -65,6 +74,7 @@ var getUserByName = function (name) {
         }).catch(err => send((err)));
 }
 
+// Returns the user card list
 var cardCreator = function (users) {
     var result = [];
     send('Toplam ' + users.length + ' adet kayıt buldum. Hangi profilin analizini yapmamı istersin?')
@@ -85,11 +95,10 @@ var cardCreator = function (users) {
     return result;
 }
 
+// Send carousel to chat
 var cardCreate = function (users) {
     var cards = cardCreator(users);
 
-
-    // create reply with Carousel AttachmentLayout
     var reply = new builder.Message(_session)
         .attachmentLayout(builder.AttachmentLayout.carousel)
         .attachments(cards);
@@ -104,7 +113,7 @@ var bot = new builder.UniversalBot(connector, [function (session) {
     var text = session.message.text.toUpperCase().trim();
     _session = session;
     switch (text) {
-        case 'MERHABA': send('Merhaba'); break;
+        case 'MERHABA': send('Merhaba'); help(); break;
         case 'YARDIM':
         case 'YARDIM ET': help(); break;
         default:
