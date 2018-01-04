@@ -1,24 +1,22 @@
-const http = require('http');
+const axios = require('axios');
 
-var options = {
-    host: 'https://api.instagram.com',
-    path: '/v1/users/search?callback=jQuery111105093242224368315_1515043766187&access_token=2255098913.e029fea.2fad30bbc7724958ba5864d37f16bc44&q=ali&_=1515043766193',
-    method: 'GET'
-};
-
-var getPhotosByUserName = function (username) {// test
+// search for images by user Id
+var getPhotosByUserId = function (userId) {
     return new Promise((resolve, reject) => {
-        http.request(options, function (res) {
-            console.log('STATUS: ' + res.statusCode);
-            console.log('HEADERS: ' + JSON.stringify(res.headers));
-            res.on('data', function (chunk) {
-                console.log('BODY: ' + chunk);
-                resolve(chunk);
-            });
-        }).end();
+        console.log('user idddddddddddddddddddddd' + userId)
+        axios.get('https://api.instagram.com/v1/users/' + userId + '/media/recent/?access_token=2255098913.e029fea.2fad30bbc7724958ba5864d37f16bc44&_=1515043766194')
+            .then(response => {
+                var photos = response.data.data;
+                var result = [];
+                for (let i = 0; i < photos.length; i++) {
+                    const element = photos[i];
+                    result.push(element.images.standard_resolution.url);
+                }
+                resolve(result);
+            }).catch(error => console.log(error));
     });
 }
 
 module.exports = {
-    getPhotosByUserName
+    getPhotosByUserId
 }

@@ -9,6 +9,7 @@
   "author": "Ali Aldemir (https://github.com/alialdemir)",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.16.2",
     "botbuilder": "^3.13.1",
     "dotenv-extended": "^2.0.1",
     "restify": "^6.3.4"

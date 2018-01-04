@@ -4,7 +4,7 @@ require('dotenv-extended').load({
 });
 var restify = require('restify');
 var builder = require('botbuilder');
-var InstagramService = require('./services/instagram.servicee');
+var InstagramService = require('./services/instagram.service');
 
 // Setup Restify Server
 var server = restify.createServer({ url: 'localhost' });
@@ -41,6 +41,20 @@ var help = function () {
             retryPrompt: 'Geçerli bir seçenek değil!'
         });
 }
+
+
+// search for images by user Id
+var getPhotosByUserId = function (userId) {
+    InstagramService
+        .getPhotosByUserId(userId)
+        .then(photos => {
+            for (let i = 0; i < photos.length; i++) {
+                const element = photos[i];
+                send(element)// test
+            }
+        }).catch(err => send((err)));
+}
+
 // Listen for messages from users 
 server.post('/api/messages', connector.listen());
 
@@ -89,12 +103,7 @@ bot.dialog('userNameSearch', [
         builder.Prompts.text(session, 'Instagram hesabınızın kullanıcı adı nedir?');
     },
     (session, results, next) => {
-        const username = results.response;
-        InstagramService
-            .getPhotosByUserName(username)
-            .then(photos => {
-                send(photos);// test
-            })
-            .catch(err => send((err)));
+        const userId = results.response;
+        getPhotosByUserId('2111701772');// sample user id
     }
 ]);
