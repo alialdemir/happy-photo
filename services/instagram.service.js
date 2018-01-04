@@ -6,7 +6,7 @@ var options = {
     method: 'GET'
 };
 
-var getPhotos = function (username) {// test
+var getPhotosByUserName = function (username) {// test
     return new Promise((resolve, reject) => {
         http.request(options, function (res) {
             console.log('STATUS: ' + res.statusCode);
@@ -20,5 +20,5 @@ var getPhotos = function (username) {// test
 }
 
 module.exports = {
-    getPhotos
+    getPhotosByUserName
 }

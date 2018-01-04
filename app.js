@@ -90,7 +90,8 @@ bot.dialog('userNameSearch', [
     },
     (session, results, next) => {
         const username = results.response;
-        InstagramService.getPhotos(username)
+        InstagramService
+            .getPhotosByUserName(username)
             .then(photos => {
                 send(photos);// test
             })
