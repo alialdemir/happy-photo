@@ -1,4 +1,5 @@
 
+
 require('dotenv-extended').load({
     path: '.env'
 });
@@ -22,7 +23,7 @@ var connector = new builder.ChatConnector({
 var _session;
 
 var DialogLabels = {
-    UserNameSearch: 'Kulanıcı adına göre arama yap',
+    UserNameSearch: 'Ad soyad veya kullanıcı adına göre arama yap',
 };
 
 // Send message
@@ -53,6 +54,47 @@ var getPhotosByUserId = function (userId) {
                 send(element)// test
             }
         }).catch(err => send((err)));
+}
+
+// search for user by user name or fullname
+var getUserByName = function (name) {
+    InstagramService
+        .getUserByName(name)
+        .then(users => {
+            cardCreate(users);
+        }).catch(err => send((err)));
+}
+
+var cardCreator = function (users) {
+    var result = [];
+    send('Toplam ' + users.length + ' adet kayıt buldum. Hangi profilin analizini yapmamı istersin?')
+    for (let i = 0; i < users.length; i++) {
+        const user = users[i];
+        var card = new builder.HeroCard(_session)
+            .title(user.full_name)
+            .subtitle(user.username)
+            .text('')
+            .images([
+                builder.CardImage.create(_session, user.profile_picture)
+            ])
+            .buttons([
+                builder.CardAction.postBack(_session, user.id, 'Analiz Et')
+            ]);
+        result.push(card);
+    }
+    return result;
+}
+
+var cardCreate = function (users) {
+    var cards = cardCreator(users);
+
+
+    // create reply with Carousel AttachmentLayout
+    var reply = new builder.Message(_session)
+        .attachmentLayout(builder.AttachmentLayout.carousel)
+        .attachments(cards);
+
+    _session.send(reply);
 }
 
 // Listen for messages from users 
@@ -94,16 +136,19 @@ function (session, result) {
 // Instagram search dialog by user name
 bot.dialog('userNameSearch', [
     (session, args, next) => {
-        // store reprompt flag
         if (args) {
             session.dialogData.isReprompt = args.isReprompt;
         }
-
-        // prompt user
-        builder.Prompts.text(session, 'Instagram hesabınızın kullanıcı adı nedir?');
+        if (session.message.text !== '1') {//Image analysis section
+            builder.Prompts.text(session, 'Analiz yapılıyor');
+            getPhotosByUserId(session.message.text);
+        }
+        else { // fullname or username input
+            builder.Prompts.text(session, 'Aradığınız instagram hesabının kullanıcı adı veya ad soyad bilgisi nedir?');
+        }
     },
     (session, results, next) => {
-        const userId = results.response;
-        getPhotosByUserId('2111701772');// sample user id
+        const name = results.response;
+        getUserByName(name);
     }
 ]);
