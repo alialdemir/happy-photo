@@ -43,14 +43,73 @@ var help = function () {
             retryPrompt: 'Geçerli bir seçenek değil!'
         });
 }
+//Gives maximum emotio value and key
+var getEmotionHighest = function (obj) {
+    var maxKey = Object.keys(obj).sort(function (a, b) {
+        return obj[a] < obj[b];
+    })[0];
 
+    return {
+        key: maxKey,
+        value: obj[maxKey]
+    };
+}
 
+var emotionTurkish = function (emotionHighest) {
+    switch (emotionHighest.key) {
+        case 'anger': return 'öfkeli';
+        case 'contempt': return 'aşağılama';
+        case 'disgust': return 'iğrenme';
+        case 'fear': return 'korkmuş';
+        case 'happiness': return 'mutlu';
+        case 'neutral': return 'tarafsız';
+        case 'sadness': return 'kederli';
+        case 'surprise': return 'şaşkın';
+        default:
+            return 'güzel';
+    }
+}
+
+var photoCardCreator = function (scores, imageUrl) {
+    var emotionHighest = getEmotionHighest(scores);
+
+    var turkishEmotion = emotionTurkish(emotionHighest);
+    return new builder.HeroCard(_session)
+        .title('%' + emotionHighest.value + ' oranla ' + turkishEmotion + ' görünüyorsun.')
+        .subtitle('')
+        .text('')
+        .images([
+            builder.CardImage.create(_session, imageUrl)
+        ])/*
+        .buttons([
+            builder.CardAction.openUrl(_session, 'https://azure.microsoft.com/en-us/services/storage/', 'Learn More')
+        ])*/;
+}
+
+// 
 var recognizeEmotions = function (url) {
-    EmotionApiService
-        .recognizeEmotions(url)
-        .then(info => {
-            send("başarılı")
-        }).catch(err => send((err)));
+    return new Promise((resolve, reject) => {
+        EmotionApiService
+            .recognizeEmotions(url)
+            .then(data => {
+                for (let i = 0; i < data.length; i++) {
+                    const element = data[i];
+
+                    var scores = {// Percent emotion calculations
+                        anger: Math.ceil(element.scores.anger * 100),
+                        contempt: Math.ceil(element.scores.contempt * 100),
+                        disgust: Math.ceil(element.scores.disgust * 100),
+                        fear: Math.ceil(element.scores.fear * 100),
+                        happiness: Math.ceil(element.scores.happiness * 100),
+                        neutral: Math.ceil(element.scores.neutral * 100),
+                        sadness: Math.ceil(element.scores.sadness * 100),
+                        surprise: Math.ceil(element.scores.surprise * 100),
+                    }
+                    var card = photoCardCreator(scores, url);
+                    resolve(card);
+                }
+            }).catch(err => send((err)));
+    });
 }
 
 // Search for images by user Id
@@ -58,10 +117,27 @@ var getPhotosByUserId = function (userId) {
     InstagramService
         .getPhotosByUserId(userId)
         .then(photos => {
-            for (let i = 0; i < photos.length; i++) {
+            const photoCount = photos.length;
+            if (photoCount > 0) { send('Hesapta  toplam ' + photoCount + ' resim var bunları sıra ile analiz ediyorum. Beni biraz bekle!'); }
+            else { send('Bu hesabın resimlerine erişemedim.'); }
+
+            var photoCardItems = [];
+
+            for (let i = 0; i < photoCount; i++) {
                 const url = photos[i];
-                recognizeEmotions(url);
+                recognizeEmotions(url).then(photoCard => {
+                    photoCardItems.push(photoCard);
+                    if (i == (photoCount - 1)) {
+                        // Send carousel card
+                        var reply = new builder.Message(_session)
+                            .attachmentLayout(builder.AttachmentLayout.carousel)
+                            .attachments(photoCardItems);
+
+                        _session.send(reply);
+                    }
+                });
             }
+
         }).catch(err => send((err)));
 }
 
@@ -70,12 +146,12 @@ var getUserByName = function (name) {
     InstagramService
         .getUserByName(name)
         .then(users => {
-            cardCreate(users);
+            userCardCreate(users);
         }).catch(err => send((err)));
 }
 
 // Returns the user card list
-var cardCreator = function (users) {
+var userCardCreator = function (users) {
     var result = [];
     send('Toplam ' + users.length + ' adet kayıt buldum. Hangi profilin analizini yapmamı istersin?')
     for (let i = 0; i < users.length; i++) {
@@ -96,8 +172,8 @@ var cardCreator = function (users) {
 }
 
 // Send carousel to chat
-var cardCreate = function (users) {
-    var cards = cardCreator(users);
+var userCardCreate = function (users) {
+    var cards = userCardCreator(users);
 
     var reply = new builder.Message(_session)
         .attachmentLayout(builder.AttachmentLayout.carousel)
