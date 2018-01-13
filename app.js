@@ -43,6 +43,15 @@ var help = function () {
             retryPrompt: 'Geçerli bir seçenek değil!'
         });
 }
+
+// Send carousel card
+var cardBuilder = function (attachments, attachmentLayout) {
+    var reply = new builder.Message(_session)
+        .attachmentLayout(attachmentLayout)
+        .attachments(attachments);
+
+    _session.send(reply);
+}
 //Gives maximum emotio value and key
 var getEmotionHighest = function (obj) {
     var maxKey = Object.keys(obj).sort(function (a, b) {
@@ -62,7 +71,7 @@ var emotionTurkish = function (emotionHighest) {
         case 'disgust': return 'iğrenme';
         case 'fear': return 'korkmuş';
         case 'happiness': return 'mutlu';
-        case 'neutral': return 'tarafsız';
+        case 'neutral': return 'duygusuz';
         case 'sadness': return 'kederli';
         case 'surprise': return 'şaşkın';
         default:
@@ -118,26 +127,19 @@ var getPhotosByUserId = function (userId) {
         .getPhotosByUserId(userId)
         .then(photos => {
             const photoCount = photos.length;
-            if (photoCount > 0) { send('Hesapta  toplam ' + photoCount + ' resim var bunları sıra ile analiz ediyorum. Beni biraz bekle!'); }
-            else { send('Bu hesabın resimlerine erişemedim.'); }
+            if (photoCount > 0) {
+                send('Hesapta  toplam ' + photoCount + ' resim var bunları sıra ile analiz ediyorum. Biraz bekle!');
+                var photoCardItems = [];
 
-            var photoCardItems = [];
-
-            for (let i = 0; i < photoCount; i++) {
-                const url = photos[i];
-                recognizeEmotions(url).then(photoCard => {
-                    photoCardItems.push(photoCard);
-                    if (i == (photoCount - 1)) {
-                        // Send carousel card
-                        var reply = new builder.Message(_session)
-                            .attachmentLayout(builder.AttachmentLayout.carousel)
-                            .attachments(photoCardItems);
-
-                        _session.send(reply);
-                    }
-                });
+                for (let i = 0; i < photoCount; i++) {
+                    const url = photos[i];
+                    recognizeEmotions(url).then(photoCard => {
+                        photoCardItems.push(photoCard);
+                        if (i === (photoCount - 1)) { cardBuilder(photoCardItems, builder.AttachmentLayout.carousel); }
+                    });
+                }
             }
-
+            else { send('Bu hesabın resimlerine erişemedim.'); }
         }).catch(err => send((err)));
 }
 
@@ -175,11 +177,7 @@ var userCardCreator = function (users) {
 var userCardCreate = function (users) {
     var cards = userCardCreator(users);
 
-    var reply = new builder.Message(_session)
-        .attachmentLayout(builder.AttachmentLayout.carousel)
-        .attachments(cards);
-
-    _session.send(reply);
+    cardBuilder(cards, builder.AttachmentLayout.carousel);
 }
 
 // Listen for messages from users 
